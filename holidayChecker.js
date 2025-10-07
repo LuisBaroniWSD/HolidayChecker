@@ -1,7 +1,7 @@
 const API_KEY = "YOUR_API_KEY";
 
 function isWeekend(date){
-  let date = new Date(date);
+  date = new Date(date);
   let day = date.getDay();
 
   return (day === 0 || day === 6);
@@ -38,7 +38,7 @@ async function isHoliday(date, jurisdiction){
     "PL", "PT", "RO", "SK", "SI", "ES", "SE"
   ];
 
-  let date = new Date(date);
+  date = new Date(date);
   const dateString = date.toISOString().substring(0, 10);
 
   if (jurisdiction.toUpperCase() === 'US'){
@@ -85,8 +85,45 @@ async function moveToNextBusinessDate(date, jurisdiction, businessDayConvention)
   }
 }
 
-function countHolidays(startDate, endDate){
-  
+async function countHolidays(startDate, endDate, jurisdiction) {
+  const euJurisdiction = [
+    "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR",
+    "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL",
+    "PL", "PT", "RO", "SK", "SI", "ES", "SE"
+  ];
+
+  let start = new Date(startDate);
+  let end = new Date(endDate);
+
+  const years = [];
+  for (let y = start.getFullYear(); y <= end.getFullYear(); y++) {
+    years.push(y);
+  }
+
+  let holidays = [];
+
+  for (const year of years) {
+    if (jurisdiction.toUpperCase() === 'US') {
+      holidays = holidays.concat(await getUsHolidays(year));
+    } else if (euJurisdiction.includes(jurisdiction.toUpperCase())) {
+      holidays = holidays.concat(await getEuHolidays(year));
+    }
+  }
+
+  holidays = [...new Set(holidays)];
+
+  let count = 0;
+  for (const hd of holidays) {
+    const hdDate = new Date(hd);
+    if (hdDate >= start && hdDate <= end) {
+      const day = hdDate.getDay();
+      if (day !== 0 && day !== 6) {
+        count++;
+      }
+    }
+  }
+
+  return count;
 }
 
 function countWeekends(startDate, endDate){
@@ -97,7 +134,7 @@ function countWeekends(startDate, endDate){
   return ((daysGap%7)*2) - (startDay>0) - (endDay<6);
 }
 
-function moveDateNumberOfBusinessDays(date, jurisdiction, numberOfDaysToMove){
+async function moveDateNumberOfBusinessDays(date, jurisdiction, numberOfDaysToMove){
   let currentDate = new Date(date);
 
   if (numberOfDaysToMove === 0){
@@ -105,7 +142,7 @@ function moveDateNumberOfBusinessDays(date, jurisdiction, numberOfDaysToMove){
   } else{
     const dayInMilliseconds = 1000 * 60 * 60 * 24;
     let endDate = new Date(currentDate.getTime() + (dayInMilliseconds*numberOfDaysToMove));
-    let daysToJump = countWeekends(currentDate, endDate) + countHolidays(currentDate, endDate);
+    let daysToJump = countWeekends(currentDate, endDate) + await countHolidays(currentDate, endDate, jurisdiction);
 
     return moveDateNumberOfBusinessDays(endDate.toISOString().substring(0, 10), jurisdiction, daysToJump);
   }
