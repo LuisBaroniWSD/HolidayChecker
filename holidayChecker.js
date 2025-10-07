@@ -85,7 +85,17 @@ async function moveToNextBusinessDate(date, jurisdiction, businessDayConvention)
   }
 }
 
+function countHolidays(startDate, endDate){
+  
+}
 
+function countWeekends(startDate, endDate){
+  const dayInMilliseconds = 1000 * 60 * 60 * 24;
+  let startDay = startDate.getDay(); let endDay = endDate.getDay();
+  let daysGap = Math.abs(endDate.getTime() - startDate.getTime()) / dayInMilliseconds;
+
+  return ((daysGap%7)*2) - (startDay>0) - (endDay<6);
+}
 
 function moveDateNumberOfBusinessDays(date, jurisdiction, numberOfDaysToMove){
   let currentDate = new Date(date);
